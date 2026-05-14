@@ -1,0 +1,65 @@
+name: ci_r14944035
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: lint • typecheck • test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      - name: Prettier check
+        run: npm run format:check
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Run tests with JUnit reporter
+        run: |
+          mkdir -p reports
+          npm test -- \
+            --reporter=default \
+            --reporter=junit \
+            --outputFile.junit=reports/vitest-junit.xml
+
+      - name: Publish test results to Actions summary
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: vitest results
+          path: reports/vitest-junit.xml
+          reporter: jest-junit
+          fail-on-error: 'true'
+
+      - name: Upload JUnit report artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report
+          path: reports/
+          if-no-files-found: error
