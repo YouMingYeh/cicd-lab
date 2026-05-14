@@ -52,7 +52,7 @@ jobs:
             --reporter=junit \
             --outputFile.junit=reports/vitest-junit.xml
 
-      - name: Publish test results to Actions summary
+      - name: Publish test results as a check run
         if: always()
         uses: dorny/test-reporter@v2
         with:
@@ -60,6 +60,7 @@ jobs:
           path: reports/vitest-junit.xml
           reporter: jest-junit
           fail-on-error: 'true'
+          use-actions-summary: 'false'
 
       - name: Upload JUnit report artifact
         if: always()
